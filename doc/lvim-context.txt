@@ -1,0 +1,265 @@
+*lvim-context.txt*    The sticky context header — what you are inside of, pinned
+
+==============================================================================
+CONTENTS                                                        *lvim-context*
+
+  1. Introduction ........................... |lvim-context-intro|
+  2. Setup .................................. |lvim-context-setup|
+  3. The sticky header ...................... |lvim-context-header|
+  4. Scopes ................................. |lvim-context-scopes|
+  5. Colours ................................ |lvim-context-colours|
+  6. Navigation ............................. |lvim-context-navigation|
+  7. Winbar ................................. |lvim-context-winbar|
+  8. Exclusions ............................. |lvim-context-exclude|
+  9. Commands ............................... |lvim-context-commands|
+ 10. API .................................... |lvim-context-api|
+ 11. Highlights ............................. |lvim-context-highlights|
+ 12. Health ................................. |lvim-context-health|
+
+==============================================================================
+1. INTRODUCTION                                           *lvim-context-intro*
+
+While you scroll deep inside a function nested in a class, the enclosing
+lines that have scrolled off the top of the window stay PINNED above it — so
+you always know what block you are looking at.
+
+The header is a floating overlay on the window's first rows (no extmark can
+draw above the window's own text), created lazily, kept in sync on scroll and
+cursor moves, and torn down with its parent. Everything is keyed by WINDOW,
+never by buffer: two splits showing the same file at different scroll
+positions each get their own header.
+
+The pinned lines carry the SOURCE buffer's own colours: both highlight layers
+are mirrored onto them — the treesitter captures (same trees, injections
+included) and every extmark highlight namespace over the line (LSP semantic
+tokens, a rainbow layer, …). A pinned line looks exactly like the line it
+mirrors.
+
+The same context can also be a one-line breadcrumb in the winbar
+(|lvim-context-winbar|), and the header is a navigation surface: click a
+pinned line and you are there (|lvim-context-navigation|).
+
+==============================================================================
+2. SETUP                                                  *lvim-context-setup*
+>lua
+  require("lvim-context").setup({
+      style = "sticky",         -- "sticky" | "winbar" | "both"
+      mode = "cursor",          -- "cursor" | "topline"
+      max_lines = 3,
+      min_window_height = 0,
+      multiline_threshold = 20,
+      trim_scope = "outer",     -- "outer" | "inner"
+      separator = false,          -- "" = none
+      line_numbers = true,
+      scope = {
+          engine = "treesitter", -- "treesitter" (via lvim-ts) | "indent"
+          nodes = { default = { "class", "function", "method", "for", "while" } },
+      },
+      exclude = { filetypes = { "markdown", "org", "text" }, max_file_lines = 20000 },
+      colors = { context = { accent = "blue", tint = "body" } },
+  })
+<
+See README.md for the FULL default config with every option and its default.
+Every glyph must be a single display cell wide — setup() rejects a wider one
+with a precise error (it would shift the row it fills), and so does every
+enum option with an unknown value.
+
+setup() merges into the LIVE config, so a second call retunes everything at
+runtime (style, engine, accents, caps) without a restart.
+
+==============================================================================
+3. THE STICKY HEADER                                     *lvim-context-header*
+
+The header holds the OPENING lines of the enclosing scopes that have scrolled
+off the top, outermost first, plus an optional rule (`separator`) under them.
+
+The subtle part is what "scrolled off" means once a header exists: the header
+OVERLAYS the window's first rows, so it hides as many source lines as it is
+tall (its rows plus the rule). A scope therefore counts while its opener sits
+above the first line the header still leaves visible — and every row the
+header grows by pushes that line one further down, which can pull the next
+scope in. The header grows exactly as far as it must, and never buries an
+opener behind its own rule.
+
+`max_lines` caps the height; `trim_scope` decides which end is dropped when
+the context is deeper than the cap ("outer" — the default — drops the
+outermost rows, so the scopes you are actually inside of survive).
+
+`multiline_threshold` applies to ONE scope's opener: its first line through
+the line where its body begins — a signature split over several lines is one
+opener. Past the threshold the opener collapses to its first line.
+
+`min_window_height` skips the header in a short window; a header also never
+takes the last row of a window (at least one row of real code stays visible).
+
+`mode` decides the anchor: "cursor" (the node the cursor is in) or "topline"
+(whatever the window's top line sits inside — the header then does not change
+while the cursor moves inside the viewport).
+
+The overlay reproduces the parent window's gutter through its own
+'statuscolumn': the SOURCE line numbers when the parent has 'number' (and
+`line_numbers` is on), blanks otherwise — so the pinned code sits in exactly
+the same screen column as the code below it. Horizontal scroll is followed by
+scrolling the overlay itself, so the mirrored highlight spans never shift.
+
+==============================================================================
+4. SCOPES                                                *lvim-context-scopes*
+
+Two engines resolve the enclosing scopes:
+
+treesitter ~
+The ancestor chain of the node at the anchor, filtered by `scope.nodes`. A
+node counts when its TYPE CONTAINS one of the configured strings, so one
+short list survives every grammar's naming ("function" matches
+`function_definition`, `function_declaration`, `function_item`, …). The
+`default` list applies to every language, on top of that language's own list;
+`scope.exclude_nodes` vetoes a type the substrings would otherwise catch.
+
+The parser is reached through lvim-ts, the set's parser registry. Injections
+are honoured: the node lists resolve against the language ACTUALLY at the
+anchor (an injected SQL string inside Lua resolves against `sql`).
+
+indent ~
+Pure indentation, no parser needed (a grammarless `.conf`, a log): a scope's
+opener is the first non-blank line above that is shallower than the level you
+are at, and its block runs to the last line still deeper than it. This is also
+the automatic fallback in any buffer with no parser — the header keeps working
+where treesitter cannot.
+
+A scope's OPENER is what gets pinned: its first line, plus any further lines
+of the same opening construct. The opener ends where the BODY begins (the
+first child starting below the opening line); the body's own line still counts
+as part of the opener when it carries header text before it, e.g. >
+
+  ) -> String where T: Debug {
+<
+==============================================================================
+5. COLOURS                                              *lvim-context-colours*
+
+Accents are palette KEYS ("blue", "comment", …) — they track the live theme —
+or a literal "#rrggbb". Tint strengths are ROLE names from the shared
+lvim-utils tint scale (`lvim-utils.config.ui` `tint.<role>`); a raw factor
+(0..1) is accepted too. The plugin defines no colour and no scale of its own,
+and every group rebuilds on |ColorScheme| / palette sync.
+
+`colors.diagnostics` (off by default) makes a scope that CONTAINS an error or
+a warning take the diagnostic accent — the header tells you the enclosing
+function is broken while you are deep inside it.
+
+==============================================================================
+6. NAVIGATION                                        *lvim-context-navigation*
+
+The header is a navigation surface, not a passive banner:
+
+- CLICK a pinned line — it jumps there. The click goes through the
+  ecosystem's mouse layer (lvim-utils.mouse); the overlay is not focusable
+  (`<C-w>w` never lands in it) but it does receive mouse events.
+- `:LvimContext jump {n}` — jump straight to the n-th enclosing scope,
+  outermost first.
+- `:LvimContext jump` — pick the scope from the canonical lvim-ui select
+  (icon + line + the opener's text), focused on the innermost one.
+- `keys.jump` (default `<CR>`) is the header buffer's own key: jump to the
+  context line under the cursor while the header holds it.
+
+Every jump sets the jumplist mark first, so |CTRL-O| comes straight back.
+
+==============================================================================
+7. WINBAR                                                *lvim-context-winbar*
+
+With `style = "winbar"` (or "both") the context is rendered as a breadcrumb in
+the window's winbar — `impl Frame { ➤ pub fn render(…) ➤ if i % 2 == 0 {` —
+one line, zero rows stolen. Each crumb is a click region that jumps to its
+scope (`winbar.clickable`), truncated to `winbar.max_crumb` cells, joined by
+`winbar.separator` (the set's pointer canon `➤`).
+
+`winbar.only_scrolled` narrows the trail to the scopes the sticky header would
+pin; by default it shows every enclosing scope, so the trail is stable.
+
+NO-CLOBBER: a window whose winbar is already owned by something else is left
+alone — lvim-context only ever writes over an EMPTY winbar or its own, and only
+ever clears its own.
+
+==============================================================================
+8. EXCLUSIONS                                           *lvim-context-exclude*
+
+A buffer with 'buftype' ~= "" (panels, trees, terminals, the dashboard,
+quickfix, prompts — anything an lvim-ui surface hosts) never gets a header:
+chrome is not content, and the rule is by CONSTRUCTION, not by a filetype name.
+Floating windows are excluded the same way.
+
+The config lists carry only the exceptions among REAL files:
+
+- `exclude.filetypes` — prose filetypes that want no header;
+- `exclude.max_file_lines` — a buffer with more lines gets no header at all;
+- `:LvimContext disable buffer` — one buffer's own switch.
+
+:checkhealth lvim-context reports the exact reason for the current buffer.
+
+==============================================================================
+9. COMMANDS                                            *lvim-context-commands*
+
+                                                              *:LvimContext*
+:LvimContext                    Toggle the global switch.
+:LvimContext enable|disable|toggle
+                                Flip the global switch.
+:LvimContext enable buffer      …only for the current buffer (same for
+                                disable / toggle).
+:LvimContext refresh            Re-resolve and repaint every header.
+:LvimContext jump [{n}]         Jump to an enclosing scope: the n-th
+                                (outermost first), or — with no index — the
+                                one picked from the lvim-ui select.
+
+==============================================================================
+10. API                                                     *lvim-context-api*
+>lua
+  local ctx = require("lvim-context")
+  ctx.enable(buf)      -- buf: nil = global, 0/bufnr = per buffer
+  ctx.disable(buf)
+  ctx.toggle(buf)
+  ctx.refresh()
+  ctx.enabled(buf)     -- nil = the global switch, 0/bufnr = effective there
+  ctx.update()         -- rebuild the headers of the current tabpage now
+  ctx.scopes(win)      -- the enclosing scope ranges, outermost first
+  ctx.line_for(win)    -- the source line of the innermost PINNED scope, or nil
+  ctx.jump(win, index) -- index: nil = the picker; 1 = the outermost scope
+<
+A scope range is `{ srow, erow, hdr_end, type, engine }` — 0-based rows;
+`hdr_end` is the last line of the scope's opener. `scopes(win)` is the shared
+resolution other lvim-* plugins reuse instead of re-deriving it.
+
+Every state change fires a |User| autocmd:
+>lua
+  vim.api.nvim_create_autocmd("User", {
+      pattern = "LvimContextChanged",
+      callback = function(ev)
+          -- ev.data = { buf = <bufnr>|nil, enabled = <boolean> }
+      end,
+  })
+<
+==============================================================================
+11. HIGHLIGHTS                                       *lvim-context-highlights*
+
+  LvimContext              the pinned rows' background wash
+  LvimContextError         a pinned row whose scope contains an error
+  LvimContextWarn          …a warning
+  LvimContextSeparator     the rule under the header
+  LvimContextLineNr        the header's mirrored line numbers
+  LvimContextCrumb         a winbar crumb
+  LvimContextCrumbSep      the ➤ between crumbs
+  LvimContextCrumbError    a crumb whose scope contains an error
+  LvimContextCrumbWarn     …a warning
+
+The pinned TEXT is never coloured by these groups — it carries the source
+buffer's own highlights, mirrored span for span.
+
+==============================================================================
+12. HEALTH                                               *lvim-context-health*
+
+`:checkhealth lvim-context` reports the dependency state, every glyph's
+display width, the exclusion decision for the current buffer (the exact reason
+when it gets no header), the engine that actually runs there (treesitter
+through lvim-ts vs the indent fallback, and the missing parsers when it falls
+back), the scopes resolved right now, and the measured cost of one cold
+resolution.
+
+vim:tw=78:ts=8:ft=help:norl:
