@@ -70,7 +70,8 @@
 ---@field trim_scope          "outer"|"inner"  which end is dropped when the context is deeper than
 ---                          `max_lines`: "outer" drops the outermost scopes, "inner" the innermost
 ---@field separator           string|false  the rule under the header (false/"" = none; single width)
----@field line_numbers        boolean  mirror the parent's number column in the header's gutter
+---@field line_numbers        boolean  render the mirrored gutter at all (false = blanks)
+---@field number_style        "auto"|"absolute"|"relative"  which numbers the pinned rows show
 ---@field zindex              integer  the overlay's z-order
 ---@field debounce            integer  ms after a scroll / cursor move before the header is rebuilt
 ---@field scope               LvimContextScope
@@ -93,6 +94,12 @@ return {
     -- and a line under it only steals a row. Set a single-width glyph ("─") to draw one.
     separator = false,
     line_numbers = true,
+    -- WHICH numbers the pinned rows show:
+    --   "auto"     — whatever the window itself shows (its 'number' / 'relativenumber' / statuscolumn):
+    --                the header is then a true mirror of the gutter below it
+    --   "absolute" — always the line's real number (what you would jump to), even when the window is relative
+    --   "relative" — always the distance from the cursor
+    number_style = "auto",
     zindex = 20,
     debounce = 20,
 

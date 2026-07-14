@@ -43,6 +43,7 @@ local ns = api.nvim_create_namespace("LvimContext")
 ---@field lnums integer[]               overlay row (1-based) → source line (1-based); 0 = the separator row
 ---@field gutter integer                display cells the overlay's statuscolumn must fill
 ---@field numbers boolean               render the mirrored line numbers in that gutter
+---@field relative boolean              the parent numbers relatively (only read by `number_style = "auto"`)
 
 ---@type table<integer, LvimContextOverlay>  parent window → its header
 local overlays = {}
@@ -102,23 +103,36 @@ function M.statuscolumn()
     if not ov.numbers then
         return "%#LvimContextLineNr#" .. (" "):rep(ov.gutter)
     end
-    -- The parent's OWN 'statuscolumn', evaluated for the SOURCE line, when it has one. A hand-rolled number
-    -- column can only ever mirror plain 'number': the moment the parent's gutter is a custom statuscolumn (a
-    -- sign cell, a fold column, a `▌` rule — the lvim-hud chrome), our numbers land on a different column than
-    -- the code below them. `nvim_eval_statusline` with `use_statuscol_lnum` renders the parent's own gutter for
-    -- an arbitrary line, which is exactly the question being asked.
-    local pstc = ov.parent and api.nvim_win_is_valid(ov.parent) and vim.wo[ov.parent].statuscolumn or ""
-    if pstc ~= "" then
-        local ok, res = pcall(api.nvim_eval_statusline, pstc, {
-            winid = ov.parent,
-            use_statuscol_lnum = lnum,
-            highlights = true,
-        })
-        if ok and res and res.str then
-            return statuscol_expr(res)
+    -- `number_style = "auto"` — MIRROR the parent's own gutter. A hand-rolled number column can only ever
+    -- imitate plain 'number': the moment the parent's gutter is a custom statuscolumn (a sign cell, a fold
+    -- column, the `▌` rule of the lvim-hud chrome), our numbers land on a different column than the code below
+    -- them. `nvim_eval_statusline` with `use_statuscol_lnum` renders the parent's OWN gutter for an arbitrary
+    -- line — exactly the question being asked — so the header reproduces it decorations and all.
+    --
+    -- "absolute" / "relative" force the numbering instead, and then the mirror cannot be used: the parent's
+    -- statuscolumn decides its own numbers, and its options may NOT be flipped from inside a redraw. Those
+    -- modes therefore draw OUR number column, right-aligned in the parent's gutter WIDTH (so the code still
+    -- lines up), without the parent's decorations.
+    local style = config.number_style
+    if style == "auto" then
+        local pstc = ov.parent and api.nvim_win_is_valid(ov.parent) and vim.wo[ov.parent].statuscolumn or ""
+        if pstc ~= "" then
+            local ok, res = pcall(api.nvim_eval_statusline, pstc, {
+                winid = ov.parent,
+                use_statuscol_lnum = lnum,
+                highlights = true,
+            })
+            if ok and res and res.str then
+                return statuscol_expr(res)
+            end
         end
     end
-    local text = tostring(lnum)
+    local shown = lnum
+    if style == "relative" or (style == "auto" and ov.relative) then
+        local cur = ov.parent and api.nvim_win_is_valid(ov.parent) and api.nvim_win_get_cursor(ov.parent)[1] or lnum
+        shown = math.abs(cur - lnum)
+    end
+    local text = tostring(shown)
     -- The number column reserves its last cell as the gap to the text (as 'number' does); a number
     -- too wide for the gutter would push the text out of alignment, so it yields to blanks.
     if #text > ov.gutter - 1 then
@@ -401,6 +415,7 @@ function M.update(win)
     ov.lnums = lnums
     ov.gutter = gutter
     ov.numbers = config.line_numbers and (vim.wo[win].number or vim.wo[win].relativenumber)
+    ov.relative = vim.wo[win].relativenumber and not vim.wo[win].number -- 'auto' with no statuscolumn
     ov.key = key
 
     for i, r in ipairs(rows) do

@@ -59,7 +59,15 @@ require("lvim-context").setup({
     multiline_threshold = 20, -- lines of ONE opener shown before it collapses to its first line
     trim_scope = "outer", -- which end is dropped past max_lines: "outer" | "inner"
     separator = false, -- the rule under the header (false / "" = none; else a single-width glyph)
-    line_numbers = true, -- mirror the parent's number column in the header's gutter
+    line_numbers = true, -- render the mirrored gutter at all (false = blanks)
+    -- WHICH numbers the pinned rows show:
+    --   "auto"     — whatever the window shows ('number' / 'relativenumber' / a custom statuscolumn): the
+    --                header is a TRUE MIRROR of the gutter below it, decorations included
+    --   "absolute" — always the line's real number (what you would jump to)
+    --   "relative" — always the distance from the cursor
+    -- "absolute"/"relative" draw OUR number column (right-aligned in the parent's gutter width, so the code
+    -- still lines up) — a custom statuscolumn's decorations are not reproduced in those modes.
+    number_style = "auto",
     zindex = 20, -- the overlay's z-order
     debounce = 20, -- ms after a scroll / cursor move before the header is rebuilt
 
