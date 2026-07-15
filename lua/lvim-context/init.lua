@@ -117,7 +117,10 @@ end
 ---@return nil
 function M.update()
     for _, win in ipairs(api.nvim_tabpage_list_wins(0)) do
-        if not render.is_overlay_buf(api.nvim_win_get_buf(win)) then
+        -- The tabpage window list is a snapshot, but this runs on a SCHEDULED (debounced) callback — a window
+        -- can be closed between the enumeration and here (a transient float dismissed, a `:q`), so re-check
+        -- validity before touching it, or `nvim_win_get_buf` throws "Invalid window id".
+        if api.nvim_win_is_valid(win) and not render.is_overlay_buf(api.nvim_win_get_buf(win)) then
             render.update(win)
             winbar.update(win)
         end
