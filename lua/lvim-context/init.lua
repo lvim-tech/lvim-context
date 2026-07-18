@@ -280,6 +280,20 @@ local function install_autocmds()
         desc = "lvim-context: rebuild the context headers (debounced)",
     })
 
+    -- Semantic tokens (and any async highlight layer) recolour the buffer with NO changedtick bump,
+    -- so the header's fingerprint would still match and the re-mirror would be skipped — the pinned
+    -- rows keep their pre-token colours until the next scroll/edit. LspTokenUpdate is the event for
+    -- that repaint: drop the memo for every header on the affected buffer and re-run the debounced
+    -- update so the mirrored extmark layer catches up.
+    api.nvim_create_autocmd("LspTokenUpdate", {
+        group = aug,
+        callback = function(ev)
+            render.invalidate_buf(ev.buf)
+            schedule()
+        end,
+        desc = "lvim-context: semantic tokens changed — re-mirror the header colours",
+    })
+
     -- 'number' / 'signcolumn' / 'foldcolumn' move the parent's text column: the header's own gutter
     -- must follow, or the pinned code stops lining up with the code below it.
     api.nvim_create_autocmd("OptionSet", {

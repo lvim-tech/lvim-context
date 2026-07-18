@@ -58,6 +58,21 @@ function M.is_overlay_buf(buf)
     return by_buf[buf] ~= nil
 end
 
+--- Drop the redraw memo for every header pinned to a window that shows `buf`. The mirrored extmark
+--- layer (LSP semantic tokens, rainbow delimiters) can change with NO changedtick bump — tokens
+--- arrive asynchronously after an edit or on attach — so the fingerprint would otherwise match and
+--- `update()` would skip the re-mirror, leaving the pinned rows on their pre-token colours. Clearing
+--- the key forces the next scheduled `update()` to re-mirror.
+---@param buf integer
+---@return nil
+function M.invalidate_buf(buf)
+    for _, ov in pairs(overlays) do
+        if ov.parent and api.nvim_win_is_valid(ov.parent) and api.nvim_win_get_buf(ov.parent) == buf then
+            ov.key = ""
+        end
+    end
+end
+
 --- Turn an `nvim_eval_statusline` result back into a 'statuscolumn' EXPRESSION: the evaluated text, cut at the
 --- reported highlight spans and each piece wrapped in its own `%#group#`, with `%` escaped so a literal `%` in
 --- the gutter is not re-interpreted. This is how the parent's rendered gutter is replayed in our window while
