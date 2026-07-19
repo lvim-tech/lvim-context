@@ -332,10 +332,14 @@ function M.context(win)
     ---@type LvimContextRow[]
     local rows = {}
 
+    -- Two listed scopes can share ONE opener line (compact code: `for … do if …`, `Enum.map(list, fn x ->`);
+    -- pinning each unconditionally renders that line twice. Track the last pinned row and skip a scope whose
+    -- opener is already on screen — outermost-first order means the earlier (outer) scope wins the shared line.
+    local last_pinned = -1
     for _, s in ipairs(scopes) do
         -- the first source line the header does not already cover (0 rows = no header, no rule)
         local at = top + #rows + (#rows > 0 and sep_rows or 0)
-        if s.srow < at and s.erow > at then
+        if s.srow < at and s.erow > at and s.srow > last_pinned then
             local last = s.hdr_end
             local span = last - s.srow + 1
             local threshold = config.multiline_threshold or 0
@@ -345,6 +349,7 @@ function M.context(win)
             for r = s.srow, last do
                 rows[#rows + 1] = { row = r, scope = s }
             end
+            last_pinned = last
         end
     end
 

@@ -306,7 +306,9 @@ local function install_autocmds()
     api.nvim_create_autocmd("WinClosed", {
         group = aug,
         callback = function(ev)
-            render.close(tonumber(ev.match) or -1)
+            local win = tonumber(ev.match) or -1
+            render.close(win)
+            scope.invalidate(win) -- the render side was torn down but the scope cache entry leaked per window
         end,
         desc = "lvim-context: tear a header down with its window",
     })
