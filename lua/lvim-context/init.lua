@@ -196,9 +196,9 @@ end
 
 --- Drop the resolved scopes and redraw every header (after a config change, a disable, a theme
 --- reload). Headers whose window no longer qualifies are torn down by the update itself.
----@param _buf? integer  accepted for symmetry with the enable/disable API (the caches are per window)
+---@param _ integer?  accepted for symmetry with the enable/disable API (the caches are per window)
 ---@return nil
-function M.refresh(_buf)
+function M.refresh(_)
     scope.invalidate()
     if not config.enabled then
         render.close_all()
