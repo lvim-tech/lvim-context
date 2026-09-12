@@ -22,7 +22,7 @@ The sticky context header — while you scroll deep inside a function nested in 
 
 ## Installation
 
-Requires Neovim >= 0.10 and [lvim-utils](https://github.com/lvim-tech/lvim-utils) (palette-bound highlights, the shared config merge, the mouse layer). [lvim-ui](https://github.com/lvim-tech/lvim-ui) provides the scope picker of `:LvimContext jump`; [lvim-ts](https://github.com/lvim-tech/lvim-ts) is the parser registry the treesitter engine resolves through — without a parser the engine falls back to indentation.
+Requires Neovim >= 0.12 and [lvim-utils](https://github.com/lvim-tech/lvim-utils) (palette-bound highlights, the shared config merge, the mouse layer). [lvim-ui](https://github.com/lvim-tech/lvim-ui) provides the scope picker of `:LvimContext jump`; [lvim-ts](https://github.com/lvim-tech/lvim-ts) is the parser registry the treesitter engine resolves through — without a parser the engine falls back to indentation.
 
 ### lvim-installer (recommended)
 
