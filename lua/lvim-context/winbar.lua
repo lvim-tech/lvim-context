@@ -1,5 +1,5 @@
 -- lvim-context.winbar: the BREADCRUMB style (`style = "winbar" | "both"`) — the same context, one
--- line, zero rows stolen: `local function open  ➤  for _, r in ipairs(rows)  ➤  if line_hl then`.
+-- line, zero rows stolen: `local function open  󰅂  for _, r in ipairs(rows)  󰅂  if line_hl then`.
 --
 -- It is a window-local `%{%…%}` winbar, so Neovim re-evaluates it on its own redraws (a cursor move
 -- repaints it for free — no autocmd-driven redraw loop) and the segments' `%#group#` / `%@…@` items

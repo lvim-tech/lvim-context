@@ -52,7 +52,7 @@
 ---@field separator   LvimContextColor  the rule under the header
 ---@field line_nr     LvimContextColor  the header's mirrored line numbers
 ---@field crumb       LvimContextColor  a winbar crumb's text
----@field crumb_sep   LvimContextColor  the ➤ between winbar crumbs
+---@field crumb_sep   LvimContextColor  the 󰅂 between winbar crumbs
 ---@field diagnostics boolean            opt-in: a scope CONTAINING an error/warning takes the
 ---                  diagnostic accent, so the header says "the function you are inside of is broken"
 ---@field error       LvimContextColor  the diagnostic accents used when `diagnostics` is on
@@ -140,7 +140,7 @@ return {
 
     winbar = {
         only_scrolled = false,
-        separator = "➤",
+        separator = "󰅂",
         max_crumb = 40,
         clickable = true,
     },

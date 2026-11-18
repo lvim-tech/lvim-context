@@ -167,10 +167,10 @@ Every jump sets the jumplist mark first, so |CTRL-O| comes straight back.
 7. WINBAR                                                *lvim-context-winbar*
 
 With `style = "winbar"` (or "both") the context is rendered as a breadcrumb in
-the window's winbar — `impl Frame { ➤ pub fn render(…) ➤ if i % 2 == 0 {` —
+the window's winbar — `impl Frame { 󰅂 pub fn render(…) 󰅂 if i % 2 == 0 {` —
 one line, zero rows stolen. Each crumb is a click region that jumps to its
 scope (`winbar.clickable`), truncated to `winbar.max_crumb` cells, joined by
-`winbar.separator` (the set's pointer canon `➤`).
+`winbar.separator` (the set's pointer canon `󰅂`).
 
 `winbar.only_scrolled` narrows the trail to the scopes the sticky header would
 pin; by default it shows every enclosing scope, so the trail is stable.
@@ -245,7 +245,7 @@ Every state change fires a |User| autocmd:
   LvimContextSeparator     the rule under the header
   LvimContextLineNr        the header's mirrored line numbers
   LvimContextCrumb         a winbar crumb
-  LvimContextCrumbSep      the ➤ between crumbs
+  LvimContextCrumbSep      the 󰅂 between crumbs
   LvimContextCrumbError    a crumb whose scope contains an error
   LvimContextCrumbWarn     …a warning
 

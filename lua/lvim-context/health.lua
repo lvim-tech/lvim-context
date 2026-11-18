@@ -84,7 +84,7 @@ local function check_context(health, win)
     for _, s in ipairs(view.scopes) do
         parts[#parts + 1] = ("%s @ %d–%d"):format(s.type, s.srow + 1, s.erow + 1)
     end
-    health.info(("scopes (outermost first): %s"):format(table.concat(parts, "  ➤  ")))
+    health.info(("scopes (outermost first): %s"):format(table.concat(parts, "  󰅂  ")))
     health.info(("pinned right now: %d line(s)"):format(#view.rows))
 end
 

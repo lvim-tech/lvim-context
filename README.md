@@ -13,7 +13,7 @@ The sticky context header — while you scroll deep inside a function nested in 
 - **Two engines** — `treesitter` (through **lvim-ts**, the set's parser seam), with a pure-**indent** fallback that needs no grammar, so a `.conf` or a log still gets a header.
 - **`max_lines` / `trim_scope` / `multiline_threshold` / `min_window_height` / `mode`** — cap the height and pick which end is dropped; collapse an over-long opener (a signature split over several lines) to its first line; skip the header in a short window; compute the context from the **cursor** or from the window's **top line**.
 - **Navigation** — click a pinned line to jump to it (through the ecosystem's mouse layer), or `:LvimContext jump [n]`; without an index it opens the canonical **lvim-ui** picker over the enclosing scopes, so a specific ancestor can be chosen.
-- **Winbar breadcrumb** (`style = "winbar" | "both"`) — the same context as `Class ➤ method ➤ if` in the window's winbar: one line, zero rows stolen, each crumb clickable. It never clobbers a winbar owned by something else.
+- **Winbar breadcrumb** (`style = "winbar" | "both"`) — the same context as `Class 󰅂 method 󰅂 if` in the window's winbar: one line, zero rows stolen, each crumb clickable. It never clobbers a winbar owned by something else.
 - **Diagnostics-aware** (opt-in) — a scope that *contains* an error/warning takes the diagnostic accent, so the header tells you the enclosing function is broken while you are deep inside it.
 - **The guard by construction** — a buffer with `buftype ~= ""` (panels, trees, terminals, the dashboard, quickfix, prompts) never gets a header; the config lists only carry the exceptions among real files, plus a hard `max_file_lines` cap.
 - **A public `scopes(win)` API** — the enclosing scope ranges, so other plugins (a fold column, a picker's preview) reuse the same resolution instead of re-deriving it.
@@ -109,7 +109,7 @@ require("lvim-context").setup({
 
     winbar = {
         only_scrolled = false, -- true = only the scopes the sticky header would pin
-        separator = "➤", -- the crumb separator
+        separator = "󰅂", -- the crumb separator
         max_crumb = 40, -- truncate one crumb to this many cells (0 = no limit)
         clickable = true, -- each crumb is a click region that jumps to it
     },
@@ -121,7 +121,7 @@ require("lvim-context").setup({
         separator = { accent = "blue", tint = "separator" }, -- the rule under the header
         line_nr = { accent = "comment" }, -- the mirrored line numbers
         crumb = { accent = "blue" }, -- a winbar crumb
-        crumb_sep = { accent = "yellow" }, -- the ➤ between crumbs
+        crumb_sep = { accent = "yellow" }, -- the 󰅂 between crumbs
         diagnostics = false, -- a scope CONTAINING an error/warning takes the diagnostic accent
         error = { accent = "red", tint = "body" },
         warn = { accent = "orange", tint = "body" },
@@ -187,7 +187,7 @@ All groups are built from the live lvim-utils palette (accents and tint roles fr
 | `LvimContextError` / `LvimContextWarn`         | a pinned row whose scope contains an error/warning  |
 | `LvimContextSeparator`                         | the rule under the header                           |
 | `LvimContextLineNr`                            | the header's mirrored line numbers                  |
-| `LvimContextCrumb` / `LvimContextCrumbSep`     | a winbar crumb / the `➤` between crumbs             |
+| `LvimContextCrumb` / `LvimContextCrumbSep`     | a winbar crumb / the `󰅂` between crumbs             |
 | `LvimContextCrumbError` / `LvimContextCrumbWarn` | a crumb whose scope contains an error/warning     |
 
 The pinned TEXT is never coloured by these groups — it carries the source buffer's own highlights, mirrored span for span.
